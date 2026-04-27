@@ -122,3 +122,4 @@
 {"timestamp":"01:04:09.090","source":"Server","level":"ERROR","message":"Wallpaper generation error: Error: Input buffer has corrupt header: glib: XML parse error: Error domain 1 code 68 on line 27 column 13 of data: xmlParseEntityRef: no name"}
 {"timestamp":"01:04:18.494","source":"Server","level":"ERROR","message":"Wallpaper generation error: Error: Input buffer has corrupt header: glib: XML parse error: Error domain 1 code 68 on line 27 column 13 of data: xmlParseEntityRef: no name"}
 {"timestamp":"01:04:27.501","source":"Server","level":"ERROR","message":"Wallpaper generation error: Error: Input buffer has corrupt header: glib: XML parse error: Error domain 1 code 68 on line 27 column 13 of data: xmlParseEntityRef: no name"}
+{"timestamp":"01:50:05.394","source":"Server","level":"LOG","message":"  Reload env: .env.local"}

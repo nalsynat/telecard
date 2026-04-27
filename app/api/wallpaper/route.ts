@@ -83,7 +83,7 @@ export async function POST(req: NextRequest) {
       .jpeg({ quality: 95 })
       .toBuffer()
 
-    return new NextResponse(wallpaper, {
+    return new NextResponse(wallpaper as unknown as BodyInit, {
       status: 200,
       headers: {
         'Content-Type': 'image/jpeg',
