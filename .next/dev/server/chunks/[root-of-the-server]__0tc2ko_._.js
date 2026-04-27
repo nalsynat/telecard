@@ -112,82 +112,18 @@ async function generateQRBuffer(url) {
     return Buffer.from(base64, 'base64');
 }
 function buildHeaderSVG() {
-    const svg = `
-    <svg width="${CANVAS_WIDTH}" height="351" xmlns="http://www.w3.org/2000/svg">
-      <rect width="${CANVAS_WIDTH}" height="351" fill="#002D62"/>
-      <text
-        x="540"
-        y="200"
-        font-family="Inter, Arial, sans-serif"
-        font-size="72"
-        font-weight="700"
-        fill="white"
-        text-anchor="middle"
-        dominant-baseline="middle"
-      >TeleCard</text>
-    </svg>
-  `;
+    const svg = `<svg width="${CANVAS_WIDTH}" height="351" xmlns="http://www.w3.org/2000/svg"><rect width="${CANVAS_WIDTH}" height="351" fill="#002D62"/><text x="540" y="175" font-family="Arial, sans-serif" font-size="72" font-weight="700" fill="white" text-anchor="middle" dominant-baseline="middle">TeleCard</text></svg>`;
     return Buffer.from(svg);
 }
 function buildActionZoneSVG(fullName, jobTitle, username) {
-    const svg = `
-    <svg width="${CANVAS_WIDTH}" height="585" xmlns="http://www.w3.org/2000/svg">
-      <rect width="${CANVAS_WIDTH}" height="585" fill="#002D62"/>
-
-      <!-- Full Name -->
-      <text
-        x="540"
-        y="80"
-        font-family="Inter, Arial, sans-serif"
-        font-size="52"
-        font-weight="700"
-        fill="white"
-        text-anchor="middle"
-        dominant-baseline="middle"
-      >${fullName}</text>
-
-      <!-- Job Title / Tagline -->
-      <text
-        x="540"
-        y="155"
-        font-family="Inter, Arial, sans-serif"
-        font-size="32"
-        font-weight="400"
-        fill="${OXBLOOD}"
-        text-anchor="middle"
-        dominant-baseline="middle"
-      >${jobTitle}</text>
-
-      <!-- QR placeholder box (will be composited separately) -->
-      <rect x="400" y="195" width="280" height="280" fill="white" rx="8"/>
-
-      <!-- URL below QR -->
-      <text
-        x="540"
-        y="510"
-        font-family="Inter, Arial, sans-serif"
-        font-size="18"
-        font-weight="400"
-        fill="#aaaaaa"
-        text-anchor="middle"
-        dominant-baseline="middle"
-      >telenamecard.vercel.app/${username}</text>
-    </svg>
-  `;
+    const safeName = fullName.replace(/&/g, 'and').replace(/</g, '').replace(/>/g, '');
+    const safeTitle = jobTitle.replace(/&/g, 'and').replace(/</g, '').replace(/>/g, '');
+    const safeUsername = username.replace(/&/g, '').replace(/</g, '').replace(/>/g, '');
+    const svg = `<svg width="${CANVAS_WIDTH}" height="585" xmlns="http://www.w3.org/2000/svg"><rect width="${CANVAS_WIDTH}" height="585" fill="#002D62"/><text x="540" y="80" font-family="Arial, sans-serif" font-size="52" font-weight="700" fill="white" text-anchor="middle" dominant-baseline="middle">${safeName}</text><text x="540" y="155" font-family="Arial, sans-serif" font-size="32" font-weight="400" fill="${OXBLOOD}" text-anchor="middle" dominant-baseline="middle">${safeTitle}</text><rect x="400" y="195" width="280" height="280" fill="white" rx="8"/><text x="540" y="510" font-family="Arial, sans-serif" font-size="18" font-weight="400" fill="#aaaaaa" text-anchor="middle" dominant-baseline="middle">telenamecard.vercel.app/${safeUsername}</text></svg>`;
     return Buffer.from(svg);
 }
 function buildGradientOverlaySVG() {
-    const svg = `
-    <svg width="${CANVAS_WIDTH}" height="468" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <linearGradient id="fadeDown" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#002D62" stop-opacity="0"/>
-          <stop offset="100%" stop-color="#002D62" stop-opacity="0.8"/>
-        </linearGradient>
-      </defs>
-      <rect width="${CANVAS_WIDTH}" height="468" fill="url(#fadeDown)"/>
-    </svg>
-  `;
+    const svg = `<svg width="${CANVAS_WIDTH}" height="468" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="fadeDown" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#002D62" stop-opacity="0"/><stop offset="100%" stop-color="#002D62" stop-opacity="0.8"/></linearGradient></defs><rect width="${CANVAS_WIDTH}" height="468" fill="url(#fadeDown)"/></svg>`;
     return Buffer.from(svg);
 }
 async function POST(req) {
@@ -204,53 +140,23 @@ async function POST(req) {
                 status: 400
             });
         }
-        // Read file as Uint8Array then convert to Buffer
         const arrayBuffer = await photoFile.arrayBuffer();
-        const uint8Array = new Uint8Array(arrayBuffer);
-        const photoBuffer = Buffer.from(uint8Array);
-        // Validate it's a real image
-        let metadata;
-        try {
-            metadata = await (0, __TURBOPACK__imported__module__$5b$externals$5d2f$sharp__$5b$external$5d$__$28$sharp$2c$__cjs$2c$__$5b$project$5d2f$node_modules$2f$sharp$29$__["default"])(photoBuffer).metadata();
-        } catch (e) {
-            return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["NextResponse"].json({
-                error: 'Invalid image. Please upload a real JPG or PNG photo.',
-                detail: e?.message
-            }, {
-                status: 400
-            });
-        }
-        // Validate image format before processing
-        let imageInfo;
-        try {
-            imageInfo = await (0, __TURBOPACK__imported__module__$5b$externals$5d2f$sharp__$5b$external$5d$__$28$sharp$2c$__cjs$2c$__$5b$project$5d2f$node_modules$2f$sharp$29$__["default"])(photoBuffer).metadata();
-        } catch  {
-            return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["NextResponse"].json({
-                error: 'Invalid image format. Please upload a JPG or PNG photo.'
-            }, {
-                status: 400
-            });
-        }
+        const photoBuffer = Buffer.from(new Uint8Array(arrayBuffer));
         const profileUrl = `https://telenamecard.vercel.app/${username}`;
-        // 1. Resize user photo to fill the photo zone (1080 x 1404)
         const resizedPhoto = await (0, __TURBOPACK__imported__module__$5b$externals$5d2f$sharp__$5b$external$5d$__$28$sharp$2c$__cjs$2c$__$5b$project$5d2f$node_modules$2f$sharp$29$__["default"])(photoBuffer).rotate().flatten({
             background: {
                 r: 0,
                 g: 45,
                 b: 98
             }
-        }) // fills transparency with Prussian Blue
-        .resize(CANVAS_WIDTH, 1404, {
+        }).resize(CANVAS_WIDTH, 1404, {
             fit: 'cover',
-            position: 'center'
+            position: 'centre'
         }).jpeg().toBuffer();
-        // 2. Generate QR code buffer
         const qrBuffer = await generateQRBuffer(profileUrl);
-        // 3. Build SVG layers
         const headerSVG = buildHeaderSVG();
         const actionSVG = buildActionZoneSVG(fullName, jobTitle, username);
         const gradientSVG = buildGradientOverlaySVG();
-        // 4. Composite everything together
         const wallpaper = await (0, __TURBOPACK__imported__module__$5b$externals$5d2f$sharp__$5b$external$5d$__$28$sharp$2c$__cjs$2c$__$5b$project$5d2f$node_modules$2f$sharp$29$__["default"])({
             create: {
                 width: CANVAS_WIDTH,
@@ -259,34 +165,29 @@ async function POST(req) {
                 background: PRUSSIAN_BLUE
             }
         }).composite([
-            // Photo zone (starts at y=351, height=1404)
             {
                 input: resizedPhoto,
                 top: 351,
                 left: 0
             },
-            // Gradient overlay on bottom of photo
             {
-                input: await (0, __TURBOPACK__imported__module__$5b$externals$5d2f$sharp__$5b$external$5d$__$28$sharp$2c$__cjs$2c$__$5b$project$5d2f$node_modules$2f$sharp$29$__["default"])(gradientSVG).png().toBuffer(),
-                top: 351 + 1404 - 468,
+                input: await (0, __TURBOPACK__imported__module__$5b$externals$5d2f$sharp__$5b$external$5d$__$28$sharp$2c$__cjs$2c$__$5b$project$5d2f$node_modules$2f$sharp$29$__["default"])(Buffer.from(gradientSVG)).png().toBuffer(),
+                top: 887,
                 left: 0
             },
-            // Header bar
             {
-                input: await (0, __TURBOPACK__imported__module__$5b$externals$5d2f$sharp__$5b$external$5d$__$28$sharp$2c$__cjs$2c$__$5b$project$5d2f$node_modules$2f$sharp$29$__["default"])(headerSVG).png().toBuffer(),
+                input: await (0, __TURBOPACK__imported__module__$5b$externals$5d2f$sharp__$5b$external$5d$__$28$sharp$2c$__cjs$2c$__$5b$project$5d2f$node_modules$2f$sharp$29$__["default"])(Buffer.from(headerSVG)).png().toBuffer(),
                 top: 0,
                 left: 0
             },
-            // Action zone (starts at y=1755)
             {
-                input: await (0, __TURBOPACK__imported__module__$5b$externals$5d2f$sharp__$5b$external$5d$__$28$sharp$2c$__cjs$2c$__$5b$project$5d2f$node_modules$2f$sharp$29$__["default"])(actionSVG).png().toBuffer(),
+                input: await (0, __TURBOPACK__imported__module__$5b$externals$5d2f$sharp__$5b$external$5d$__$28$sharp$2c$__cjs$2c$__$5b$project$5d2f$node_modules$2f$sharp$29$__["default"])(Buffer.from(actionSVG)).png().toBuffer(),
                 top: 1755,
                 left: 0
             },
-            // QR code composited into action zone QR box
             {
                 input: await (0, __TURBOPACK__imported__module__$5b$externals$5d2f$sharp__$5b$external$5d$__$28$sharp$2c$__cjs$2c$__$5b$project$5d2f$node_modules$2f$sharp$29$__["default"])(qrBuffer).resize(280, 280).toBuffer(),
-                top: 1755 + 195,
+                top: 1950,
                 left: 400
             }
         ]).jpeg({
@@ -296,7 +197,7 @@ async function POST(req) {
             status: 200,
             headers: {
                 'Content-Type': 'image/jpeg',
-                'Content-Disposition': `attachment; filename="telecard-wallpaper.jpg"`
+                'Content-Disposition': 'attachment; filename="telecard-wallpaper.jpg"'
             }
         });
     } catch (error) {
