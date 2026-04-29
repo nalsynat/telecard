@@ -211,7 +211,7 @@ Table interactions {
 
 ---
 
-## 9. FOUNDER SIGN-OFF CHECKLIST
+## 9. FOUNDER SIGN-OFF CHECKLIST git remote set-url origin
 
 All decisions below are locked. Developer does not need to revisit these.
 
@@ -231,3 +231,4 @@ All decisions below are locked. Developer does not need to revisit these.
 ---
 
 *TeleCard PRD V1.2 — Prepared for developer handover. Do not modify without founder sign-off.* and supabase TElecard2026 pass 
+
