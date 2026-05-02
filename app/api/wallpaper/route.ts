@@ -6,40 +6,47 @@ const W = 1080, H = 2340, HEADER_H = 351, PHOTO_H = 1404
 const PB = { r: 0, g: 45, b: 98 }
 
 function headerSVG(): Buffer {
-  return Buffer.from(`<svg width="1080" height="351" xmlns="http://www.w3.org/2000/svg">
-    <rect width="1080" height="351" fill="#002D62"/>
-    <text
-      x="540"
-      y="195"
-      font-family="Georgia, 'Times New Roman', serif"
-      font-size="88"
-      font-weight="700"
-      font-style="normal"
-      fill="white"
-      text-anchor="middle"
-      dominant-baseline="middle"
-      letter-spacing="12"
-    >TeleCard</text>
-  </svg>`)
+  return Buffer.from(
+    '<svg width="1080" height="351" xmlns="http://www.w3.org/2000/svg">' +
+    '<rect width="1080" height="351" fill="#002D62"/>' +
+    '<text x="540" y="210" font-family="serif" font-size="96" font-weight="bold" fill="white" text-anchor="middle">TeleCard</text>' +
+    '</svg>'
+  )
 }
 
-function actionSVG(name: string, title: string): Buffer {
+function actionSVG(name: string, title: string) {
   const n = name.replace(/&/g, 'and').replace(/[<>]/g, '')
   const t = title.toUpperCase().replace(/&/g, 'AND').replace(/[<>]/g, '')
-  return Buffer.from('<svg width="1080" height="585" xmlns="http://www.w3.org/2000/svg"><rect width="1080" height="585" fill="#002D62"/><text x="540" y="100" font-family="Arial" font-size="64" font-weight="700" fill="white" text-anchor="middle" dominant-baseline="middle">' + n + '</text><text x="540" y="180" font-family="Arial" font-size="32" fill="#7B001C" text-anchor="middle" dominant-baseline="middle" letter-spacing="6">' + t + '</text><rect x="390" y="220" width="300" height="300" rx="16" fill="white"/></svg>')
+  return Buffer.from(
+    '<svg width="1080" height="585" xmlns="http://www.w3.org/2000/svg">' +
+    '<rect width="1080" height="585" fill="#002D62"/>' +
+    '<text x="540" y="100" font-family="serif" font-size="64" font-weight="bold" fill="white" text-anchor="middle" dominant-baseline="middle">' + n + '</text>' +
+    '<text x="540" y="180" font-family="serif" font-size="32" fill="#7B001C" text-anchor="middle" dominant-baseline="middle" letter-spacing="6">' + t + '</text>' +
+    '<rect x="390" y="220" width="300" height="300" rx="16" fill="white"/>' +
+    '</svg>'
+  )
 }
 
 function gradientSVG(): Buffer {
-  return Buffer.from('<svg width="1080" height="520" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#002D62" stop-opacity="0"/><stop offset="55%" stop-color="#002D62" stop-opacity="0.4"/><stop offset="100%" stop-color="#002D62" stop-opacity="0.97"/></linearGradient></defs><rect width="1080" height="520" fill="url(#g)"/></svg>')
+  return Buffer.from(
+    '<svg width="1080" height="520" xmlns="http://www.w3.org/2000/svg">' +
+    '<defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1">' +
+    '<stop offset="0%" stop-color="#002D62" stop-opacity="0"/>' +
+    '<stop offset="55%" stop-color="#002D62" stop-opacity="0.4"/>' +
+    '<stop offset="100%" stop-color="#002D62" stop-opacity="0.97"/>' +
+    '</linearGradient></defs>' +
+    '<rect width="1080" height="520" fill="url(#g)"/>' +
+    '</svg>'
+  )
 }
 
-export async function POST(req: NextRequest) {
+export async function POST(req: any) {
   try {
     const formData = await req.formData()
-    const photoFile = formData.get('photo') as File
-    const fullName = (formData.get('fullName') as string) || 'Your Name'
-    const jobTitle = (formData.get('jobTitle') as string) || 'YOUR TITLE'
-    const username = (formData.get('username') as string) || 'username'
+    const photoFile = formData.get('photo')
+    const fullName = formData.get('fullName') || 'Your Name'
+    const jobTitle = formData.get('jobTitle') || 'YOUR TITLE'
+    const username = formData.get('username') || 'username'
     if (!photoFile) return NextResponse.json({ error: 'Photo is required' }, { status: 400 })
     const photoBuffer = Buffer.from(new Uint8Array(await photoFile.arrayBuffer()))
     const profileUrl = 'https://telenamecard.vercel.app/' + username
@@ -65,8 +72,8 @@ export async function POST(req: NextRequest) {
       status: 200,
       headers: { 'Content-Type': 'image/jpeg', 'Content-Disposition': 'attachment; filename="telecard-wallpaper.jpg"' },
     })
-  } catch (error: any) {
+  } catch (error) {
     console.error('Wallpaper error:', error)
-    return NextResponse.json({ error: 'Failed to generate wallpaper', detail: error?.message || String(error) }, { status: 500 })
+    return NextResponse.json({ error: 'Failed to generate wallpaper', detail: (error as any)?.message || String(error) }, { status: 500 })
   }
 }
