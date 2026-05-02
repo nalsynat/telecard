@@ -4,7 +4,29 @@ import { notFound } from 'next/navigation'
 interface Props {
   params: Promise<{ username: string }>
 }
-
+export async function generateMetadata({ params }: Props) {
+  const { username } = await params
+  const { data: user } = await supabaseAdmin
+    .from('users')
+    .select('id, full_name')
+    .eq('username', username)
+    .single()
+  const { data: profile } = await supabaseAdmin
+    .from('profiles')
+    .select('job_title')
+    .eq('user_id', user?.id || '')
+    .single()
+  return {
+    title: user?.full_name ? user.full_name + ' — TeleCard' : 'TeleCard',
+    description: profile?.job_title || 'View my TeleCard profile',
+    openGraph: {
+      title: user?.full_name ? user.full_name + ' — TeleCard' : 'TeleCard',
+      description: profile?.job_title || 'View my TeleCard profile',
+      url: 'https://telenamecard.vercel.app/' + username,
+      type: 'profile',
+    },
+  }
+}
 export default async function ProfilePage({ params }: Props) {
   const { username } = await params
 
