@@ -6,7 +6,21 @@ const W = 1080, H = 2340, HEADER_H = 351, PHOTO_H = 1404
 const PB = { r: 0, g: 45, b: 98 }
 
 function headerSVG(): Buffer {
-  return Buffer.from('<svg width="1080" height="351" xmlns="http://www.w3.org/2000/svg"><rect width="1080" height="351" fill="#002D62"/><text x="540" y="175" font-family="Arial" font-size="80" font-weight="700" fill="white" text-anchor="middle" dominant-baseline="middle" letter-spacing="8">TeleCard</text></svg>')
+  return Buffer.from(`<svg width="1080" height="351" xmlns="http://www.w3.org/2000/svg">
+    <rect width="1080" height="351" fill="#002D62"/>
+    <text
+      x="540"
+      y="195"
+      font-family="Georgia, 'Times New Roman', serif"
+      font-size="88"
+      font-weight="700"
+      font-style="normal"
+      fill="white"
+      text-anchor="middle"
+      dominant-baseline="middle"
+      letter-spacing="12"
+    >TeleCard</text>
+  </svg>`)
 }
 
 function actionSVG(name: string, title: string): Buffer {

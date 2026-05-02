@@ -8,7 +8,7 @@ interface Props {
 export default async function ProfilePage({ params }: Props) {
   const { username } = await params
 
-  const { data: user, error } = await supabaseAdmin
+  const { data: user } = await supabaseAdmin
     .from('users')
     .select('*')
     .eq('username', username)
@@ -24,6 +24,8 @@ export default async function ProfilePage({ params }: Props) {
 
   const profileUrl = 'https://telenamecard.vercel.app/' + username
   const botUrl = 'https://t.me/TeleNameCardBot?start=scan_' + user.id
+  const pageTitle = user.full_name + ' — TeleCard'
+  const pageDesc = profile?.job_title ? profile.job_title + ' on TeleCard' : 'View my TeleCard profile'
 
   const vcard = [
     'BEGIN:VCARD',
@@ -58,6 +60,13 @@ export default async function ProfilePage({ params }: Props) {
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: styles }} />
+      <title>{pageTitle}</title>
+      <meta name="description" content={pageDesc} />
+      <meta property="og:title" content={pageTitle} />
+      <meta property="og:description" content={pageDesc} />
+      <meta property="og:url" content={profileUrl} />
+      <meta property="og:type" content="profile" />
+      <meta name="twitter:card" content="summary" />
       <div className="card">
         <div className="photo-zone">
           {profile?.avatar_url ? (
