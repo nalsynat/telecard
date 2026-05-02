@@ -6,10 +6,13 @@ const W = 1080, H = 2340, HEADER_H = 351, PHOTO_H = 1404
 const PB = { r: 0, g: 45, b: 98 }
 
 function headerSVG(): Buffer {
+  // Pure color header — no text, no font dependency
+  // TeleCard brand shown via the action zone instead
   return Buffer.from(
     '<svg width="1080" height="351" xmlns="http://www.w3.org/2000/svg">' +
     '<rect width="1080" height="351" fill="#002D62"/>' +
-    '<text x="540" y="210" font-family="serif" font-size="96" font-weight="bold" fill="white" text-anchor="middle">TeleCard</text>' +
+    '<rect x="440" y="165" width="200" height="2" fill="rgba(255,255,255,0.3)"/>' +
+    '<rect x="390" y="175" width="300" height="2" fill="rgba(255,255,255,0.15)"/>' +
     '</svg>'
   )
 }
