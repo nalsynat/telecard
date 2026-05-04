@@ -3,11 +3,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 
 const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN!)
-
 const APP_URL = 'https://telenamecard.vercel.app'
-const BOT_USERNAME = 'TeleNameCardBot'
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 async function getOrCreateUser(ctx: any) {
   const telegramId = ctx.from.id
@@ -20,9 +18,24 @@ async function getOrCreateUser(ctx: any) {
     .eq('telegram_id', telegramId)
     .single()
 
-  if (existing) return { user: existing, isNew: false }
+  if (existing) {
+    // Ensure profile exists for existing users too
+    const { data: profile } = await supabaseAdmin
+      .from('profiles')
+      .select('id')
+      .eq('user_id', existing.id)
+      .single()
 
-  // Create stub user immediately — value on step one
+    if (!profile) {
+      await supabaseAdmin.from('profiles').insert({
+        user_id: existing.id,
+        job_title: '',
+      })
+    }
+    return { user: existing, isNew: false }
+  }
+
+  // Create new user
   const username = telegramUsername || 'user' + telegramId
   const { data: newUser } = await supabaseAdmin
     .from('users')
@@ -35,7 +48,7 @@ async function getOrCreateUser(ctx: any) {
     .select()
     .single()
 
-  // Create stub profile
+  // Always create profile for new user
   if (newUser) {
     await supabaseAdmin.from('profiles').insert({
       user_id: newUser.id,
@@ -47,10 +60,23 @@ async function getOrCreateUser(ctx: any) {
 }
 
 function profileUrl(username: string) {
-  return `${APP_URL}/${username}`
+  return APP_URL + '/' + username
 }
 
-// ── /start ───────────────────────────────────────────────────────────────────
+async function setMenuButton(telegramId: number, webAppUrl: string) {
+  try {
+    await bot.telegram.callApi('setChatMenuButton', {
+      chat_id: telegramId,
+      menu_button: {
+        type: 'web_app',
+        text: 'My TeleCard',
+        web_app: { url: webAppUrl },
+      },
+    })
+  } catch (e) {}
+}
+
+// ── /start ────────────────────────────────────────────────────────────────────
 
 bot.command('start', async (ctx) => {
   const param = (ctx.message as any).text?.split(' ')[1] || ''
@@ -83,22 +109,29 @@ bot.command('start', async (ctx) => {
       try {
         await bot.telegram.sendMessage(
           owner.telegram_id,
-          `Someone just viewed your TeleCard.\n\n👤 ${ctx.from.first_name}${ctx.from.username ? ' (@' + ctx.from.username + ')' : ''}\n\nYour card is working.`
+          'Someone just viewed your TeleCard.\n\n' +
+          ctx.from.first_name +
+          (ctx.from.username ? ' (@' + ctx.from.username + ')' : '') +
+          '\n\nYour card is working.'
         )
       } catch (e) {}
     }
   }
 
+  // Set menu button to open profile
+  const url = profileUrl(user.username)
+  await setMenuButton(ctx.from.id, url)
+
   if (isNew) {
-    const url = profileUrl(user.username)
     await ctx.reply(
-      `Hi ${ctx.from.first_name}! I'm Mali, your smart assistant.\n\nI just created your TeleCard:\n${url}\n\nLet's make it shine. What's your job title or role?`
+      'Hi ' + ctx.from.first_name + '! I am Mali, your smart assistant.\n\n' +
+      'I just created your TeleCard:\n' + url + '\n\n' +
+      'What is your job title or role?'
     )
-    await supabaseAdmin.from('users').update({ mode: 'PROFESSIONAL' }).eq('id', user.id)
   } else {
-    const url = profileUrl(user.username)
     await ctx.reply(
-      `Welcome back, ${ctx.from.first_name}!\n\nYour TeleCard: ${url}`,
+      'Welcome back, ' + ctx.from.first_name + '!\n\n' +
+      'Your TeleCard: ' + url,
       Markup.inlineKeyboard([
         [Markup.button.callback('Switch Face', 'switch_face')],
         [Markup.button.callback('Edit Name', 'edit_name')],
@@ -108,7 +141,7 @@ bot.command('start', async (ctx) => {
   }
 })
 
-// ── Callback actions ─────────────────────────────────────────────────────────
+// ── Callback actions ──────────────────────────────────────────────────────────
 
 bot.action('switch_face', async (ctx) => {
   await ctx.answerCbQuery()
@@ -119,20 +152,15 @@ bot.action('switch_face', async (ctx) => {
     .single()
 
   if (!user) return
-
   const newMode = user.mode === 'PROFESSIONAL' ? 'SELLER' : 'PROFESSIONAL'
   await supabaseAdmin.from('users').update({ mode: newMode }).eq('telegram_id', ctx.from.id)
-
   const modeLabel = newMode === 'PROFESSIONAL' ? 'Professional' : 'Seller'
-  await ctx.reply(`Done. Your card now shows your ${modeLabel} face.\n\n${profileUrl(user.username)}`)
+  await ctx.reply('Done. Your card now shows your ' + modeLabel + ' face.\n\n' + profileUrl(user.username))
 })
 
 bot.action('edit_name', async (ctx) => {
   await ctx.answerCbQuery()
   await ctx.reply('Send me your new name:')
-  await supabaseAdmin.from('users').update({ mode: 'PROFESSIONAL' }).eq('telegram_id', ctx.from.id)
-  // Store state
-  await supabaseAdmin.from('users').update({ username: '__awaiting_name__' + (await supabaseAdmin.from('users').select('username').eq('telegram_id', ctx.from.id).single()).data?.username }).eq('telegram_id', ctx.from.id)
 })
 
 bot.action('edit_title', async (ctx) => {
@@ -140,37 +168,36 @@ bot.action('edit_title', async (ctx) => {
   await ctx.reply('Send me your job title or tagline:')
 })
 
-// ── Photo handler — auto wallpaper ───────────────────────────────────────────
+// ── Photo handler ─────────────────────────────────────────────────────────────
 
 bot.on('photo', async (ctx) => {
   const { data: user } = await supabaseAdmin
     .from('users')
-    .select('*, profiles(*)')
+    .select('*')
     .eq('telegram_id', ctx.from.id)
     .single()
 
-  if (!user) {
-    await ctx.reply('Please start with /start first.')
-    return
-  }
+  if (!user) { await ctx.reply('Please send /start first.'); return }
+
+  const { data: profile } = await supabaseAdmin
+    .from('profiles')
+    .select('*')
+    .eq('user_id', user.id)
+    .single()
 
   await ctx.reply('Got your photo. Generating your Smart Wallpaper...')
 
   try {
-    // Get highest resolution photo
     const photos = ctx.message.photo
     const largestPhoto = photos[photos.length - 1]
     const fileLink = await ctx.telegram.getFileLink(largestPhoto.file_id)
 
-    // Download photo
     const photoRes = await fetch(fileLink.href)
     const photoBuffer = Buffer.from(await photoRes.arrayBuffer())
 
-    const profile = Array.isArray(user.profiles) ? user.profiles[0] : user.profiles
-    const jobTitle = profile?.job_title || 'TeleCard'
+    const jobTitle = (profile?.job_title && profile.job_title !== '') ? profile.job_title : 'TeleCard'
     const username = user.username || String(ctx.from.id)
 
-    // Call wallpaper API
     const formData = new FormData()
     const blob = new Blob([photoBuffer], { type: 'image/jpeg' })
     formData.append('photo', blob, 'photo.jpg')
@@ -178,7 +205,7 @@ bot.on('photo', async (ctx) => {
     formData.append('jobTitle', jobTitle)
     formData.append('username', username)
 
-    const wallpaperRes = await fetch(`${APP_URL}/api/wallpaper`, {
+    const wallpaperRes = await fetch(APP_URL + '/api/wallpaper', {
       method: 'POST',
       body: formData,
     })
@@ -190,17 +217,20 @@ bot.on('photo', async (ctx) => {
 
     const wallpaperBuffer = Buffer.from(await wallpaperRes.arrayBuffer())
 
-    // Send wallpaper back
     await ctx.replyWithPhoto(
       { source: wallpaperBuffer, filename: 'telecard-wallpaper.jpg' },
-      { caption: `Your Smart Wallpaper is ready.\n\nSet it as your lock screen — every phone that scans it opens your TeleCard.\n\n${profileUrl(username)}` }
+      {
+        caption:
+          'Your Smart Wallpaper is ready.\n\n' +
+          'Set it as your lock screen — every phone that scans it opens your TeleCard.\n\n' +
+          profileUrl(username)
+      }
     )
 
-    // Save avatar URL (store file_id for future use)
+    // Save avatar file_id
     await supabaseAdmin
       .from('profiles')
-      .update({ avatar_url: largestPhoto.file_id })
-      .eq('user_id', user.id)
+      .upsert({ user_id: user.id, avatar_url: largestPhoto.file_id })
 
   } catch (error: any) {
     console.error('Photo handler error:', error)
@@ -208,7 +238,7 @@ bot.on('photo', async (ctx) => {
   }
 })
 
-// ── Text handler — collect job title or name ──────────────────────────────────
+// ── Text handler ──────────────────────────────────────────────────────────────
 
 bot.on('text', async (ctx) => {
   const text = ctx.message.text
@@ -216,15 +246,22 @@ bot.on('text', async (ctx) => {
 
   const { data: user } = await supabaseAdmin
     .from('users')
-    .select('*, profiles(*)')
+    .select('*')
     .eq('telegram_id', ctx.from.id)
     .single()
 
   if (!user) return
 
-  const profile = Array.isArray(user.profiles) ? user.profiles[0] : user.profiles
+  const { data: profile } = await supabaseAdmin
+    .from('profiles')
+    .select('*')
+    .eq('user_id', user.id)
+    .single()
 
-  // If no job title yet — this is onboarding step 2
+  // Check if this looks like a name (contains space or is short)
+  const looksLikeName = text.split(' ').length >= 2 && text.length < 50
+
+  // If no job title yet — onboarding step 2
   if (!profile?.job_title || profile.job_title === '') {
     await supabaseAdmin
       .from('profiles')
@@ -233,7 +270,8 @@ bot.on('text', async (ctx) => {
 
     const url = profileUrl(user.username)
     await ctx.reply(
-      `Perfect. Your TeleCard is ready:\n${url}\n\nNow send me your photo and I'll generate your Smart Wallpaper.`,
+      'Perfect. Your TeleCard is ready:\n' + url + '\n\n' +
+      'Now send me your photo and I will generate your Smart Wallpaper.',
       Markup.inlineKeyboard([
         [Markup.button.callback('Switch Face', 'switch_face')],
       ])
@@ -241,22 +279,22 @@ bot.on('text', async (ctx) => {
     return
   }
 
-  // Otherwise treat as job title update
+  // Otherwise treat as title update
   await supabaseAdmin
     .from('profiles')
     .update({ job_title: text })
     .eq('user_id', user.id)
 
-  await ctx.reply(`Updated. Your title is now: ${text}\n\nSend a photo to regenerate your wallpaper.`)
+  await ctx.reply('Updated. Your title is now: ' + text + '\n\nSend a photo to regenerate your wallpaper.')
 })
 
-// ── /export ──────────────────────────────────────────────────────────────────
+// ── /export ───────────────────────────────────────────────────────────────────
 
 bot.command('export', async (ctx) => {
   const { data: user } = await supabaseAdmin
     .from('users').select('id').eq('telegram_id', ctx.from.id).single()
 
-  if (!user) { await ctx.reply('Please start with /start first.'); return }
+  if (!user) { await ctx.reply('Please send /start first.'); return }
 
   const { data: interactions } = await supabaseAdmin
     .from('interactions').select('*').eq('owner_id', user.id)
@@ -267,13 +305,13 @@ bot.command('export', async (ctx) => {
   }
 
   const header = 'id,type,location_verified,created_at\n'
-  const rows = interactions.map(i =>
-    `${i.id},${i.type},${i.location_verified},${i.created_at}`
+  const rows = interactions.map((i: any) =>
+    i.id + ',' + i.type + ',' + i.location_verified + ',' + i.created_at
   ).join('\n')
 
   await ctx.replyWithDocument({
     source: Buffer.from(header + rows, 'utf-8'),
-    filename: `telecard-export-${Date.now()}.csv`,
+    filename: 'telecard-export-' + Date.now() + '.csv',
   })
 })
 
