@@ -5,7 +5,7 @@ import { generateBrandedQR } from '@/lib/qr'
 
 const W = 1080, H = 2340, PHOTO_H = 1404
 const PB = { r: 0, g: 45, b: 98 }
-const FONT = 'DejaVu Sans'
+const FONT = 'Noto Sans'
 
 function headerSVG(): Buffer {
   return Buffer.from(
@@ -45,8 +45,10 @@ function gradientSVG(): Buffer {
 export async function POST(req: NextRequest) {
   try {
     // Point sharp to bundled fonts
+    // Point sharp to bundled fonts
     const fontDir = path.join(process.cwd(), 'public', 'fonts')
     process.env.FONTCONFIG_PATH = fontDir
+    process.env.FONTCONFIG_FILE = path.join(fontDir, 'fonts.conf')
 
     const formData = await req.formData()
     const photoFile = formData.get('photo') as File
