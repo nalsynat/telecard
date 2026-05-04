@@ -31,6 +31,18 @@ async function getOrCreateUser(ctx: any) {
         user_id: existing.id,
         job_title: '',
       })
+    } else if (!profile.avatar_url) {
+      // Try to fetch Telegram profile photo
+      try {
+        const photos = await ctx.telegram.getUserProfilePhotos(existing.telegram_id, { limit: 1 })
+        if (photos.total_count > 0) {
+          const fileId = photos.photos[0][0].file_id
+          await supabaseAdmin
+            .from('profiles')
+            .update({ avatar_url: fileId })
+            .eq('user_id', existing.id)
+        }
+      } catch (e) {}
     }
     return { user: existing, isNew: false }
   }
@@ -54,6 +66,20 @@ async function getOrCreateUser(ctx: any) {
       user_id: newUser.id,
       job_title: '',
     })
+  }
+
+  // Fetch Telegram profile photo for new user
+  if (newUser) {
+    try {
+      const photos = await ctx.telegram.getUserProfilePhotos(telegramId, { limit: 1 })
+      if (photos.total_count > 0) {
+        const fileId = photos.photos[0][0].file_id
+        await supabaseAdmin
+          .from('profiles')
+          .update({ avatar_url: fileId })
+          .eq('user_id', newUser.id)
+      }
+    } catch (e) {}
   }
 
   return { user: newUser, isNew: true }
