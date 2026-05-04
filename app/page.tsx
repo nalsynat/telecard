@@ -1,101 +1,53 @@
-
-'use client'
-
-import { useState } from 'react'
+import Link from 'next/link'
 
 export default function Home() {
-  const [photo, setPhoto] = useState<File | null>(null)
-  const [fullName, setFullName] = useState('Sokha Chann')
-  const [jobTitle, setJobTitle] = useState('CEO & Co-Founder')
-  const [username, setUsername] = useState('sokha')
-  const [loading, setLoading] = useState(false)
-  const [wallpaperUrl, setWallpaperUrl] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
-
-  const handleGenerate = async () => {
-    if (!photo) {
-      setError('Please select a photo first.')
-      return
-    }
-    setLoading(true)
-    setError(null)
-    setWallpaperUrl(null)
-
-    try {
-      const formData = new FormData()
-      formData.append('photo', photo, photo.name)
-      formData.append('fullName', fullName)
-      formData.append('jobTitle', jobTitle)
-      formData.append('username', username)
-
-      const res = await fetch('/api/wallpaper', {
-        method: 'POST',
-        body: formData,
-      })
-
-      const contentType = res.headers.get('content-type')
-
-      if (!res.ok || !contentType?.includes('image')) {
-        const err = await res.json().catch(() => ({ error: 'Unknown error' }))
-        setError(err.detail || err.error || 'Failed to generate wallpaper.')
-        return
-      }
-
-      const blob = await res.blob()
-      const url = URL.createObjectURL(blob)
-      setWallpaperUrl(url)
-    } catch (e: any) {
-      setError('Network error: ' + (e?.message || 'unknown'))
-    } finally {
-      setLoading(false)
-    }
-  }
-
   return (
-    <main className="min-h-screen bg-slate-100 flex flex-col items-center py-12 px-4">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-lg p-8">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-[#002D62]">TeleCard</h1>
-          <p className="text-sm text-gray-500 mt-1">Smart Wallpaper Generator</p>
+    <>
+      <style dangerouslySetInnerHTML={{ __html: `
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #002D62; font-family: -apple-system, Inter, Arial, sans-serif; min-height: 100vh; }
+        .hero { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 48px 32px; text-align: center; }
+        .logo { font-size: 48px; font-weight: 800; color: white; letter-spacing: 2px; margin-bottom: 8px; }
+        .tagline { font-size: 16px; color: rgba(255,255,255,0.5); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 64px; }
+        .feature { margin-bottom: 48px; }
+        .feature-title { font-size: 22px; font-weight: 700; color: white; margin-bottom: 8px; }
+        .feature-desc { font-size: 15px; color: rgba(255,255,255,0.5); line-height: 1.6; max-width: 300px; margin: 0 auto; }
+        .cta { margin-top: 16px; }
+        .cta-btn { display: inline-block; background: white; color: #002D62; font-size: 16px; font-weight: 700; padding: 18px 40px; border-radius: 14px; text-decoration: none; letter-spacing: 0.5px; }
+        .cta-sub { margin-top: 16px; font-size: 13px; color: rgba(255,255,255,0.3); }
+        .divider { width: 1px; height: 40px; background: rgba(255,255,255,0.1); margin: 32px auto; }
+        .brand { margin-top: 64px; font-size: 11px; color: rgba(255,255,255,0.15); letter-spacing: 2px; }
+      ` }} />
+      <div className="hero">
+        <div className="logo">TeleCard</div>
+        <div className="tagline">Your digital identity</div>
+
+        <div className="feature">
+          <div className="feature-title">Lock screen. QR code. Done.</div>
+          <div className="feature-desc">Set your Smart Wallpaper as your lock screen. Anyone who scans it opens your profile instantly.</div>
         </div>
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
-            <input type="text" value={fullName} onChange={e => setFullName(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D62]" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Job Title / Tagline</label>
-            <input type="text" value={jobTitle} onChange={e => setJobTitle(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D62]" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
-            <input type="text" value={username} onChange={e => setUsername(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002D62]" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Your Photo</label>
-            <input type="file" accept="image/*" onChange={e => setPhoto(e.target.files?.[0] || null)}
-              className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-[#002D62] file:text-white hover:file:bg-blue-900" />
-          </div>
-          {error && <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>}
-          <button onClick={handleGenerate} disabled={loading}
-            className="w-full bg-[#002D62] text-white font-semibold py-3 rounded-lg hover:bg-blue-900 transition disabled:opacity-50 disabled:cursor-not-allowed">
-            {loading ? 'Generating...' : 'Generate Smart Wallpaper'}
-          </button>
+
+        <div className="divider" />
+
+        <div className="feature">
+          <div className="feature-title">No app download needed.</div>
+          <div className="feature-desc">Built inside Telegram. Works on any phone. Save contacts with one tap.</div>
         </div>
-        {wallpaperUrl && (
-          <div className="mt-8 text-center">
-            <p className="text-sm font-medium text-gray-700 mb-3">Your Smart Wallpaper is ready:</p>
-            <img src={wallpaperUrl} alt="Generated wallpaper" className="w-full rounded-xl shadow-md mb-4" />
-            <a href={wallpaperUrl} download="telecard-wallpaper.jpg"
-              className="inline-block bg-[#7B001C] text-white font-semibold px-6 py-2 rounded-lg hover:bg-red-900 transition">
-              Download Wallpaper
-            </a>
-          </div>
-        )}
+
+        <div className="divider" />
+
+        <div className="feature">
+          <div className="feature-title">Know who scanned your card.</div>
+          <div className="feature-desc">Mali notifies you every time someone views your TeleCard.</div>
+        </div>
+
+        <div className="cta">
+          <a className="cta-btn" href="https://t.me/TeleNameCardBot">Get your TeleCard</a>
+          <div className="cta-sub">Free. Takes 60 seconds.</div>
+        </div>
+
+        <div className="brand">TELECARD · CAMBODIA</div>
       </div>
-    </main>
+    </>
   )
 }

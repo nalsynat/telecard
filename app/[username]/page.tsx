@@ -92,7 +92,7 @@ export default async function ProfilePage({ params }: Props) {
       <div className="card">
         <div className="photo-zone">
           {profile?.avatar_url ? (
-            <img src={profile.avatar_url} alt={user.full_name} />
+            <img src={'https://telenamecard.vercel.app/api/avatar?fileId=' + profile.avatar_url} alt={user.full_name} />
           ) : (
             <div className="no-photo">
               <span className="initial">{user.full_name?.charAt(0) || '?'}</span>
